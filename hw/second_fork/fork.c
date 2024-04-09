@@ -6,8 +6,9 @@
 int main(){
 	pid_t pid; // process id(int)
 
-	pid = fork(); // create? fork? a child process
 	for (int i = 0; i < 2; i++){
+		pif = fork(); // fork child process
+
 		if (pid < 0){ // failed to create child process
 			printf("Fork Failed");
 		}
