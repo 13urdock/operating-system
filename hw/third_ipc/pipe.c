@@ -9,7 +9,7 @@ int main(){
 	int pipefd[2]; //array saving pipe file descripter fd[0]: for reading fd[1]: for writing
 	pid_t child_pid;
 	char buff;
-	char* message = "1234\n";
+	char* message = "1234";
 
 	//create pipe
 	if (pipe(pipefd) == -1){
@@ -28,8 +28,12 @@ int main(){
 	if (child_pid == 0){ // excuting in child process
 		close(pipefd[1]); // bcz no need to write
 
-		while (read(pipefd[0], &buff, 1) > 0) // read data in pipe
-			write(STDOUT_FILENO, &buff, 1); // STDOUT_FILENO means 표준 출력, = 1
+		while (read(pipefd[0], &buff, 4) > 0){ // read data in pipe
+		printf("Child process  : Received \"");
+		
+			write(STDOUT_FILENO, &buff, 4); // STDOUT_FILENO means 표준 출력, = 1
+		printf("\" from parent\n");
+		}
 
 		write(STDOUT_FILENO, "\n", 1);
 		close(pipefd[0]); // done reading
@@ -37,7 +41,8 @@ int main(){
 	}
 	else { // excuting in parent process
 		close(pipefd[0]); // bcz no need to read
-		write(pipefd[1], &buff, strlen(message));
+		printf("Parent process: send \"%s\" to child...\n", message);
+		write(pipefd[1], message, strlen(message));
 		close(pipefd[1]); // done writing
 		wait(NULL); // wait til the end of child process
 		exit(EXIT_SUCCESS);
