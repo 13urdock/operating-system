@@ -4,7 +4,7 @@
 #include <pthread.h>
 
 #define TIMES 10000000
-#define THREADS 5
+#define THREADS 10
 
 void* repeat_single(void *param){
 	for (int i = 0 ; i < TIMES; i++){
