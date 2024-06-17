@@ -5,14 +5,17 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <pthread.h>
 #define PORT 8080
+#define MAX_CLIENTS 3
 
 int main(int argc, char* argv[]){
 	int server_fd, user;
 	ssize_t valread; // message from client
 	struct sockaddr_in address; // server address
-	int opt = 1; // for setsockopt. option value
+	int opt = 1; // for setsockopt. optional
 	socklen_t addrlen = sizeof(address); //size of address
+
 	char buffer[1024] = {0};	// buffer for message from client
 	char* hello = "This is chatroom\n"; // message that will be sent to client
 
@@ -40,6 +43,7 @@ int main(int argc, char* argv[]){
 		perror("bind failed");
 		exit(EXIT_FAILURE);
 	}
+	printf("Server starts.\n");
 	
 	// server socket turns receiving message mode. don't need while loop it keeps listening after execution
 	// server socket discriptor, maximum number of waiting connection requirement
@@ -47,22 +51,25 @@ int main(int argc, char* argv[]){
 		perror("listen");
 		exit(EXIT_FAILURE);
 	}
+	printf("Waiting for clients...\n");
 	
 	// create new socket and accept client's requirement
-		if ((user = accept(server_fd, (struct sockaddr*)&address, &addrlen))< 0) {
-			perror("accept");
-			exit(EXIT_FAILURE);
-		}
-	send(user, hello, strlen(hello), 0);
+	if ((user = accept(server_fd, (struct sockaddr*)&address, &addrlen))< 0) {
+		perror("accept");
+		exit(EXIT_FAILURE);
+	}
+	//send(user, hello, strlen(hello), 0);
 
-	// communicate with client(user)
+	// communicate with client(user) - get message from client
 	valread = read(user, buffer, 1024 - 1); // subtract 1 for the null
-	// terminator at the end
-	printf("read and send %s\n", buffer);
-	// sending messages to all clients
-	send(user, buffer, strlen(buffer), 0);
 
-	// printf("Hello message sent\n");
+	// terminator at the end
+	printf("read %s\n", buffer);
+
+	// sending messages to all clients
+	//send(user, buffer, strlen(buffer), 0);
+
+	printf("Hello message sent\n");
 
 	// closing the connected socket
 	close(user);
