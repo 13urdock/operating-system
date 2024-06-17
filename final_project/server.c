@@ -68,7 +68,6 @@ void* handle_client(void* client_socket){
 
 int main(int argc, char* argv[]){
 	int server_fd;
-	Client* user = (Client*)malloc(sizeof(Client));
 	ssize_t valread; // message from client
 	struct sockaddr_in address; // server address
 	int opt = 1; // for setsockopt. optional
@@ -105,7 +104,7 @@ int main(int argc, char* argv[]){
 	
 	// server socket turns receiving message mode. don't need while loop it keeps listening after execution
 	// server socket discriptor, maximum number of waiting connection requirement
-	if (listen(server_fd, 3) < 0) {
+	if (listen(server_fd, 5) < 0) {
 		perror("listen");
 		exit(EXIT_FAILURE);
 	}
@@ -114,6 +113,7 @@ int main(int argc, char* argv[]){
 	
 	// create new socket and accept client's requirement
 	while(client_count < MAX_CLIENTS) {
+		Client* user = (Client*)malloc(sizeof(Client));
 		user->number = client_count + 1;
 		if ((user->socket = accept(server_fd, (struct sockaddr*)&address, &addrlen))< 0) {
 			perror("accept");
@@ -126,13 +126,9 @@ int main(int argc, char* argv[]){
 		pthread_mutex_unlock(&mutex);
 
 		pthread_t thread;
-		pthread_create(&thread, NULL, handle_client, &user);
+		pthread_create(&thread, NULL, handle_client, user);
 		pthread_detach(thread);
 	}
-	
-
-	// closing the connected socket
-	close(user->socket);
 
 	// closing the listening socket
 	close(server_fd);
