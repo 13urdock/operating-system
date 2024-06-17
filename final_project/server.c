@@ -8,9 +8,36 @@
 #include <pthread.h>
 #define PORT 8080
 #define MAX_CLIENTS 3
+#define MAX_LEN 1024
+
+typedef struct Client{
+	int socket, number;
+}Client;
+
+int client_sockets[MAX_CLIENTS];
+int client_count = 0;
+
+// communicate with client
+void* handle_client(void* client_socket){
+	Client* user = (Client*)client_socket;
+	char buffer[MAX_LEN] = {0};
+	printf("Client %d: ", user->number);
+
+	// communicate with client(user) - get message from client
+	valread = read(user, buffer, 1024 - 1); // subtract 1 for the null
+
+	// terminator at the end
+	printf("read %s\n", buffer);
+
+	sending messages to all clients
+	send(user, buffer, strlen(buffer), 0);
+
+}
+
 
 int main(int argc, char* argv[]){
-	int server_fd, user;
+	int server_fd;
+	Client* user = (Client*)malloc(sizeof(Client));
 	ssize_t valread; // message from client
 	struct sockaddr_in address; // server address
 	int opt = 1; // for setsockopt. optional
@@ -25,7 +52,7 @@ int main(int argc, char* argv[]){
 		exit(EXIT_FAILURE);
 	}
 
-	// Forcefully attaching socket to the port 8000
+	// attaching socket to the port 8000
 	// SOL_SOCKET: protocol levet to set socket option
 	// SO_REUSEADDR: you can use same port number after server process ended
 	// SO_REUSEPORT: make several sockets share same port -> load balancing
@@ -38,7 +65,7 @@ int main(int argc, char* argv[]){
 	address.sin_addr.s_addr = inet_addr("127.0.0.1"); // address of server IP (binding all IP address) set access acception range 
 	address.sin_port = htons(PORT); // port number of server
 
-	// Forcefully attaching socket to the port 8080
+	// attaching socket to the port 8080
 	if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0) { // if success returns 0 or -1
 		perror("bind failed");
 		exit(EXIT_FAILURE);
@@ -53,23 +80,22 @@ int main(int argc, char* argv[]){
 	}
 	printf("Waiting for clients...\n");
 	
+	
 	// create new socket and accept client's requirement
-	if ((user = accept(server_fd, (struct sockaddr*)&address, &addrlen))< 0) {
-		perror("accept");
-		exit(EXIT_FAILURE);
+	int client_count = 0;
+	while(client_count < MAX_CLIENTS) {
+		user->number = client_count + 1;
+		if ((user->socket = accept(server_fd, (struct sockaddr*)&address, &addrlen))< 0) {
+			perror("accept");
+			exit(EXIT_FAILURE);
+		}
+
+		pthread_t thread;
+		pthread_create(&thread, NULL, handle_client, &user);
+		pthread_detach(thread);
+		client_count++:
 	}
-	//send(user, hello, strlen(hello), 0);
-
-	// communicate with client(user) - get message from client
-	valread = read(user, buffer, 1024 - 1); // subtract 1 for the null
-
-	// terminator at the end
-	printf("read %s\n", buffer);
-
-	// sending messages to all clients
-	//send(user, buffer, strlen(buffer), 0);
-
-	printf("Hello message sent\n");
+	
 
 	// closing the connected socket
 	close(user);
