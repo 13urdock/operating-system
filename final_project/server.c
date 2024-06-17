@@ -16,22 +16,53 @@ typedef struct Client{
 
 int client_sockets[MAX_CLIENTS];
 int client_count = 0;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void send_others(char* message, int sender){
+	pthread_mutex_lock(&mutex);
+	for (int i = 0; i < client_count; i++){
+		if (client_sockets[i] != sender) {
+			send(client_sockets[i], message, strlen(message), 0);
+		}
+	}
+	pthread_mutex_unlock(&mutex);
+}
 
 // communicate with client
 void* handle_client(void* client_socket){
 	Client* user = (Client*)client_socket;
 	char buffer[MAX_LEN] = {0};
 	printf("Client %d: ", user->number);
+	ssize_t message = read(user->socket, buffer, sizeof(buffer) - 1);
+	char* name = buffer;
+	printf("%s joined.\n", name);
 
-	// communicate with client(user) - get message from client
-	valread = read(user, buffer, 1024 - 1); // subtract 1 for the null
+	while (1){
+		message = read(user->socket, buffer, sizeof(buffer) - 1);
+		if (message <= 0){
+			char buf[MAX_LEN];
+			snprintf(buf, MAX_LEN, "Client %d: %s left.\n", user->number, name);
+			send_others(buf, user->socket);
+			printf("%s", buf);
+			break;
+		}
+		buffer[message] = '\0';
+		send_others(buffer, user->socket);
+	}
 
-	// terminator at the end
-	printf("read %s\n", buffer);
-
-	sending messages to all clients
-	send(user, buffer, strlen(buffer), 0);
-
+	// client deletion
+	pthread_mutex_lock(&mutex);
+	for (int i = 0; i < client_count; i++) {
+		if (client_sockets[i] == user->socket) {
+			client_sockets[i] = client_sockets[client_count - 1];
+			client_count--;
+			break;
+		}
+	}
+  pthread_mutex_unlock(&mutex);	
+	close(user->socket);
+	free(user);
+	return NULL;
 }
 
 
@@ -82,23 +113,26 @@ int main(int argc, char* argv[]){
 	
 	
 	// create new socket and accept client's requirement
-	int client_count = 0;
 	while(client_count < MAX_CLIENTS) {
 		user->number = client_count + 1;
 		if ((user->socket = accept(server_fd, (struct sockaddr*)&address, &addrlen))< 0) {
 			perror("accept");
 			exit(EXIT_FAILURE);
 		}
+		
+		pthread_mutex_lock(&mutex);
+		client_sockets[client_count] = user->socket;
+		client_count++;
+		pthread_mutex_unlock(&mutex);
 
 		pthread_t thread;
 		pthread_create(&thread, NULL, handle_client, &user);
 		pthread_detach(thread);
-		client_count++:
 	}
 	
 
 	// closing the connected socket
-	close(user);
+	close(user->socket);
 
 	// closing the listening socket
 	close(server_fd);
