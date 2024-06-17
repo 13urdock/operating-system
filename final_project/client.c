@@ -35,10 +35,8 @@ int main(int argc, char* argv[]){
 	// communicate with server
 	send(client_fd, hello, strlen(hello), 0);
 	printf("Hello message sent\n");
-	for (int i = 0; i < 4; i++){
-		valread = read(client_fd, buffer, 1024 - 1); // substract 1 for the null terminator at the end
-		printf("%s\n", buffer);
-	}
+	valread = read(client_fd, buffer, 1024 - 1); // substract 1 for the null terminator at the end
+	printf("%s\n", buffer);
 
 	close(client_fd);
 	return 0;

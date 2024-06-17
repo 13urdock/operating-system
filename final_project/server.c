@@ -8,7 +8,7 @@
 #define PORT 8080
 
 int main(int argc, char* argv[]){
-	int server_fd, user[3];
+	int server_fd, user;
 	ssize_t valread; // message from client
 	struct sockaddr_in address; // server address
 	int opt = 1; // for setsockopt. option value
@@ -49,31 +49,25 @@ int main(int argc, char* argv[]){
 	}
 	
 	// create new socket and accept client's requirement
-	for(int i = 0;i < 3; i++){
-		if ((user[i] = accept(server_fd, (struct sockaddr*)&address, &addrlen))< 0) {
+		if ((user = accept(server_fd, (struct sockaddr*)&address, &addrlen))< 0) {
 			perror("accept");
 			exit(EXIT_FAILURE);
 		}
-		else
-			send(user[i], hello, strlen(hello), 0);
-	}
+	send(user, hello, strlen(hello), 0);
 
 	// communicate with client(user)
-	for(int i = 0;i < 3; i++){
-		valread = read(user[i], buffer, 1024 - 1); // subtract 1 for the null
-		// terminator at the end
-		printf("read and send%s\n", buffer);
-		// sending messages to all clients
-		for (int i = 0; i < 3; i++)
-			send(user[i], buffer, strlen(buffer), 0);
+	valread = read(user, buffer, 1024 - 1); // subtract 1 for the null
+	// terminator at the end
+	printf("read and send %s\n", buffer);
+	// sending messages to all clients
+	send(user, buffer, strlen(buffer), 0);
 
-		// printf("Hello message sent\n");
-	}
+	// printf("Hello message sent\n");
 
 	// closing the connected socket
-	for (int i = 0; i < 3; i++)
-		close(user[i]);
+	close(user);
 
 	// closing the listening socket
 	close(server_fd);
 	return 0;
+}
